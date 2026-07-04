@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>DESIGN SPEC BUILDER</title>
+<meta name="description" content="7項目を選ぶだけでUIデザイン仕様書を作成できるツール">
+<meta name="theme-color" content="#1C1B1F">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Spec Builder">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Noto+Serif+JP:wght@500;700;900&family=M+PLUS+Rounded+1c:wght@500;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root{
+    --paper:#F6F5F2;
+    --ink:#1C1B1F;
+    --ink-soft:#57545C;
+    --line:#DEDBD4;
+    --panel:#FFFFFF;
+    --accent:#0A84FF;
+    --mono:'JetBrains Mono', ui-monospace, monospace;
+    --sans:'Noto Sans JP', system-ui, sans-serif;
+    --r-btn:12px; --r-card:16px; --r-input:10px;
+    --sp-unit:12px;
+    --dur:250ms;
+  }
+  html,body{background:var(--ink);}
+  body{font-family:var(--sans); color:var(--ink);}
+  .eyebrow{font-family:var(--mono); letter-spacing:.08em;}
+  ::-webkit-scrollbar{width:8px;height:8px;}
+  ::-webkit-scrollbar-thumb{background:#3a383f;border-radius:99px;}
+  .studio-scroll::-webkit-scrollbar-thumb{background:#c9c4b8;}
+
+  .chip{
+    font-family:var(--mono); font-size:12.5px; letter-spacing:.01em;
+    border:1px solid var(--line); background:var(--panel); color:var(--ink-soft);
+    padding:9px 13px; border-radius:8px; cursor:pointer; transition:all .15s ease;
+    white-space:nowrap;
+  }
+  .chip:hover{border-color:#B9B4A6;}
+  .chip.active{background:var(--ink); color:var(--paper); border-color:var(--ink);}
+  .chip-desc{font-size:11.5px; color:#9A968C; margin-top:6px; line-height:1.5;}
+
+  .section-card{background:var(--panel); border:1px solid var(--line); border-radius:4px;}
+  .section-num{font-family:var(--mono); font-size:11px; color:#B0AB9C;}
+
+  /* --- phone preview --- */
+  .phone{
+    width:280px; height:572px; background:#000; border-radius:44px; padding:10px;
+    box-shadow:0 30px 60px -20px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.06);
+  }
+  .phone-screen{
+    width:100%; height:100%; border-radius:34px; overflow:hidden; position:relative;
+    background:var(--pv-bg,#fff); color:var(--pv-fg,#111); transition:background var(--dur) ease, color var(--dur) ease;
+    display:flex; flex-direction:column; font-family:var(--pv-font,var(--sans));
+  }
+  .pv-statusbar{height:38px; flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; padding:0 22px; font-size:11px; font-weight:700;}
+  .pv-header{flex:0 0 auto; padding:4px 18px 14px; font-weight:900; font-size:19px; letter-spacing:-.02em;}
+  .pv-body{flex:1 1 auto; padding:0 16px 16px; overflow:hidden; position:relative;}
+  .pv-card{
+    background:var(--pv-surface,#F4F3F0); border-radius:var(--r-card); padding:16px;
+    margin-bottom:var(--sp-unit); transition:all var(--dur) ease;
+  }
+  .pv-card.elevated{box-shadow:0 6px 18px -8px rgba(0,0,0,.25);}
+  .pv-card.outline{background:transparent; border:1.4px solid var(--pv-line,#DEDBD4);}
+  .pv-input{
+    width:100%; padding:11px 13px; border-radius:var(--r-input); font-size:13px; margin-top:var(--sp-unit);
+    background:var(--pv-surface,#F4F3F0); border:1.4px solid transparent; color:inherit; transition:all var(--dur) ease;
+  }
+  .pv-input.outline{background:transparent; border-color:var(--pv-line,#DEDBD4);}
+  .pv-input.underline{background:transparent; border-radius:0; border:none; border-bottom:1.6px solid var(--pv-line,#DEDBD4); padding-left:2px;}
+  .pv-btn{
+    display:inline-flex; align-items:center; justify-content:center; padding:12px 20px; font-weight:700; font-size:13.5px;
+    background:var(--pv-accent,#0A84FF); color:#fff; border-radius:var(--r-btn); margin-top:var(--sp-unit);
+    transition:all var(--dur) ease; cursor:pointer; width:100%;
+  }
+  .pv-btn.pill{border-radius:999px;}
+  .pv-btn.square{border-radius:4px;}
+  .pv-btn:active{transform:scale(.96);}
+  .pv-tabbar{
+    flex:0 0 auto; display:flex; justify-content:space-around; align-items:center; padding:10px 0 22px;
+    border-top:1px solid var(--pv-line,#eee); background:var(--pv-bg,#fff);
+  }
+  .pv-tab{width:26px;height:26px;border-radius:8px;background:var(--pv-line,#e5e3de);}
+  .pv-tab.on{background:var(--pv-accent,#0A84FF);}
+  .pv-fab-menu{position:absolute; top:14px; left:14px; width:30px; height:22px; display:flex; flex-direction:column; justify-content:space-between;}
+  .pv-fab-menu span{display:block; height:2.5px; background:var(--pv-fg,#111); border-radius:2px;}
+  .pv-drawer{
+    position:absolute; inset:0; background:var(--pv-bg,#fff); transform:translateX(-72%); transition:transform var(--dur) ease;
+    box-shadow:8px 0 30px rgba(0,0,0,.15); padding:60px 18px 18px; z-index:5;
+  }
+  .pv-modal-overlay{position:absolute; inset:0; background:rgba(0,0,0,.42); display:flex; align-items:flex-end; z-index:6;}
+  .pv-modal-overlay.center{align-items:center; padding:0 16px;}
+  .pv-sheet{background:var(--pv-bg,#fff); width:100%; border-radius:22px 22px 0 0; padding:14px 18px 26px;}
+  .pv-sheet-handle{width:36px;height:4px;background:var(--pv-line,#ddd); border-radius:99px; margin:0 auto 14px;}
+  .pv-modal-card{background:var(--pv-bg,#fff); width:100%; border-radius:var(--r-card); padding:20px;}
+
+  .badge{font-family:var(--mono); font-size:10.5px; padding:4px 8px; border-radius:99px; background:#EDEBE4; color:var(--ink-soft); border:1px solid var(--line);}
+
+  .toggle{width:38px;height:22px;border-radius:99px;background:var(--line);position:relative;transition:background .15s;flex:0 0 auto;}
+  .toggle.on{background:var(--ink);}
+  .toggle::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:99px;background:#fff;transition:transform .15s;}
+  .toggle.on::after{transform:translateX(16px);}
+
+  #specModal{backdrop-filter:blur(2px);}
+  #specText{font-family:var(--mono); font-size:12.5px; line-height:1.8; white-space:pre-wrap;}
+</style>
+</head>
+<body class="min-h-screen">
+
+<!-- HEADER -->
+<header class="sticky top-0 z-20 bg-[#1C1B1F] text-[#F6F5F2] border-b border-black/40">
+  <div class="max-w-[1400px] mx-auto px-4 md:px-8 py-4 flex items-center justify-between">
+    <div>
+      <p class="eyebrow text-[10px] text-[#7FE0C1] mb-1">UI / UX SPECIFICATION TOOL</p>
+      <h1 class="text-[17px] md:text-[19px] font-black tracking-tight">DESIGN SPEC BUILDER</h1>
+    </div>
+    <button id="openSpecBtn" class="eyebrow text-[12px] bg-[#7FE0C1] text-[#1C1B1F] font-bold px-4 py-2.5 rounded-md hover:brightness-95 active:scale-95 transition">
+      仕様書を出力 →
+    </button>
+  </div>
+</header>
+
+<main class="max-w-[1400px] mx-auto px-4 md:px-8 py-6 md:py-10">
+<div class="grid lg:grid-cols-[1fr_320px] gap-8 items-start">
+
+  <!-- LEFT: BUILDER -->
+  <div class="space-y-4" id="builder"></div>
+
+  <!-- RIGHT: PREVIEW (sticky) -->
+  <div class="lg:sticky lg:top-24 flex flex-col items-center gap-5">
+    <div class="flex items-center gap-2 self-stretch justify-between">
+      <p class="eyebrow text-[10px] text-[#7FE0C1]">LIVE PREVIEW</p>
+      <div class="flex gap-1.5" id="darkToggleWrap"></div>
+    </div>
+    <div class="phone"><div class="phone-screen" id="pvScreen"></div></div>
+
+    <div class="section-card w-full p-4 bg-[#22212A] border-[#3a383f] text-[#F6F5F2]">
+      <p class="eyebrow text-[10px] text-[#7FE0C1] mb-3">TOKEN SHEET</p>
+      <div id="tokenSheet" class="space-y-2 text-[11px] eyebrow leading-relaxed text-[#C9C6BE]"></div>
+    </div>
+  </div>
+
+</div>
+</main>
+
+<footer class="text-center text-[10px] eyebrow text-[#6b6870] py-8">7 STEPS → 1 SPEC · WORKS OFFLINE AFTER FIRST LOAD</footer>
+
+<!-- SPEC MODAL -->
+<div id="specModal" class="fixed inset-0 bg-black/60 z-50 hidden items-center justify-center p-4">
+  <div class="bg-[var(--paper)] w-full max-w-2xl max-h-[85vh] rounded-md flex flex-col overflow-hidden">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-[var(--line)]">
+      <p class="eyebrow text-[11px] text-[var(--ink-soft)]">DESIGN SPECIFICATION.md</p>
+      <button id="closeSpecBtn" class="text-[var(--ink-soft)] hover:text-[var(--ink)] text-xl leading-none">&times;</button>
+    </div>
+    <div class="overflow-y-auto studio-scroll p-5 flex-1">
+      <pre id="specText"></pre>
+    </div>
+    <div class="flex gap-2 px-5 py-4 border-t border-[var(--line)]">
+      <button id="copySpecBtn" class="chip flex-1 text-center !py-3">コピー</button>
+      <button id="downloadSpecBtn" class="chip flex-1 text-center !py-3 active">ダウンロード(.md)</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===================== DATA ===================== */
+const SECTIONS = [
+  {
+    key:'designSystem', num:'01', title:'デザインシステム',
+    options:[
+      {v:'apple-hig', l:'Apple HIG', d:'iOS標準。角丸12px前後、余白広め、ぼかし多用。'},
+      {v:'material', l:'Material Design 3', d:'Google標準。エレベーション影、動的カラー。'},
+      {v:'fluent', l:'Fluent Design', d:'Microsoft標準。アクリル質感、鋭角寄り。'},
+      {v:'custom', l:'カスタム/独自', d:'既存OSに依らない独自ルール。'},
+    ]
+  },
+  {
+    key:'concept', num:'02', title:'デザインコンセプト', note:'選択すると配色・フォントの初期値を提案します(後で変更可)',
+    options:[
+      {v:'apple', l:'Apple純正', d:'クリーン・余白・薄い影。'},
+      {v:'notion', l:'Notion風', d:'白ベース・モノトーン・実用的。'},
+      {v:'luxury', l:'高級感', d:'黒/ゴールド・セリフ・余白を贅沢に。'},
+      {v:'minimal', l:'ミニマル', d:'装飾ゼロ・グレースケール中心。'},
+      {v:'pop', l:'ポップ&カラフル', d:'丸ゴシック・鮮やかな配色。'},
+    ]
+  },
+  {
+    key:'layout', num:'03', title:'画面構成',
+    options:[
+      {v:'tabbar', l:'タブバー', d:'下部固定タブで主要画面を切替。'},
+      {v:'cards', l:'カードUI', d:'コンテンツをカード単位で縦に並べる。'},
+      {v:'modal', l:'モーダル中心', d:'主要操作をモーダルカードで完結。'},
+      {v:'sheet', l:'ボトムシート', d:'画面下からシートをせり上げて操作。'},
+      {v:'drawer', l:'ハンバーガーメニュー', d:'左からドロワーで主要導線を格納。'},
+    ]
+  },
+  {
+    key:'components', num:'04', title:'コンポーネント仕様', multi:true,
+    groups:[
+      {gkey:'button', label:'ボタン形状', options:[
+        {v:'rounded', l:'角丸'},{v:'pill', l:'ピル(完全丸)'},{v:'square', l:'角ばり'}
+      ]},
+      {gkey:'input', label:'入力欄スタイル', options:[
+        {v:'fill', l:'塗りつぶし'},{v:'outline', l:'アウトライン'},{v:'underline', l:'アンダーライン'}
+      ]},
+      {gkey:'card', label:'カードスタイル', options:[
+        {v:'flat', l:'フラット'},{v:'elevated', l:'影(エレベーション)'},{v:'outline', l:'アウトライン'}
+      ]},
+    ]
+  },
+  {
+    key:'colorType', num:'05', title:'配色・タイポグラフィ', multi:true, custom:true
+  },
+  {
+    key:'ux', num:'06', title:'UX原則', multi:true, toggle:true,
+    options:[
+      {v:'oneHand', l:'片手操作を優先', d:'主要ボタンを画面下部・親指圏内に配置。'},
+      {v:'threeTap', l:'主要導線は3タップ以内', d:'目的の操作まで最短経路を設計。'},
+      {v:'gazeGuide', l:'視線誘導(Zパターン)を意識', d:'重要要素を視線の流れ上に配置。'},
+      {v:'instantFeedback', l:'操作への即時フィードバック', d:'タップ後200ms以内に視覚変化を返す。'},
+    ]
+  },
+  {
+    key:'motion', num:'07', title:'アニメーション・アクセシビリティ', multi:true, custom:true
+  },
+];
+
+const CONCEPT_PRESET = {
+  apple:   {color:'#0A84FF', font:'sf',     radius:'medium'},
+  notion:  {color:'#2383E2', font:'noto',   radius:'small'},
+  luxury:  {color:'#B08D57', font:'serif',  radius:'small'},
+  minimal: {color:'#111111', font:'noto',   radius:'small'},
+  pop:     {color:'#FF5A5F', font:'rounded',radius:'large'},
+};
+
+const FONT_MAP = {
+  sf:     {label:'SF Pro系(システム標準)', css:'-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif'},
+  noto:   {label:'Noto Sans JP(標準)',      css:'"Noto Sans JP", system-ui, sans-serif'},
+  serif:  {label:'Noto Serif JP(高級感)',   css:'"Noto Serif JP", serif'},
+  rounded:{label:'M PLUS Rounded 1c(親しみ)', css:'"M PLUS Rounded 1c", sans-serif'},
+};
+
+const RADIUS_MAP = {
+  small:  {btn:8,  card:12, input:8,  label:'小(引き締まった印象)'},
+  medium: {btn:12, card:16, input:10, label:'中(標準)'},
+  large:  {btn:18, card:22, input:12, label:'大(親しみ・柔らかさ)'},
+};
+
+const SPACING_MAP = {
+  compact:{unit:8,  label:'コンパクト'},
+  standard:{unit:12,label:'標準'},
+  comfortable:{unit:16,label:'ゆったり'},
+};
+
+const SPEED_MAP = {
+  none:{ms:0, label:'なし(即時反映)'},
+  fast:{ms:150, label:'俊敏 150ms'},
+  standard:{ms:250, label:'標準 250ms'},
+  slow:{ms:400, label:'ゆったり 400ms'},
+};
+
+/* ===================== STATE ===================== */
+const state = {
+  designSystem:'apple-hig',
+  concept:'apple',
+  layout:'tabbar',
+  components:{button:'rounded', input:'fill', card:'elevated'},
+  color:'#0A84FF',
+  font:'sf',
+  radiusScale:'medium',
+  spacingScale:'standard',
+  ux:{oneHand:true, threeTap:true, gazeGuide:false, instantFeedback:true},
+  motion:{speed:'standard', dynamicType:true, darkMode:'auto', contrast:'AA'},
+  previewDark:false,
+};
+
+/* ===================== RENDER BUILDER ===================== */
+const builder = document.getElementById('builder');
+
+function chipHtml(sectionKey, val, opt, active, groupKey){
+  const dataAttrs = groupKey ? `data-section="${sectionKey}" data-group="${groupKey}" data-value="${opt.v}"` : `data-section="${sectionKey}" data-value="${opt.v}"`;
+  return `<button class="chip ${active?'active':''}" ${dataAttrs}>${opt.l}</button>`;
+}
+
+function renderSection(sec){
+  let inner = '';
+  if(sec.key === 'colorType'){
+    inner = `
+      <div class="mb-5">
+        <p class="text-[12px] font-bold mb-2 text-[var(--ink)]">プライマリカラー</p>
+        <div class="flex items-center gap-3">
+          <input type="color" id="colorPicker" value="${state.color}" class="w-11 h-11 rounded-md border border-[var(--line)] cursor-pointer bg-transparent">
+          <span class="eyebrow text-[12px] text-[var(--ink-soft)]" id="colorHex">${state.color}</span>
+        </div>
+      </div>
+      <div class="mb-5">
+        <p class="text-[12px] font-bold mb-2 text-[var(--ink)]">フォント</p>
+        <div class="flex flex-wrap gap-2" data-group="font">
+          ${Object.entries(FONT_MAP).map(([k,v])=>`<button class="chip ${state.font===k?'active':''}" data-section="colorType" data-group="font" data-value="${k}">${v.label}</button>`).join('')}
+        </div>
+      </div>
+      <div class="mb-5">
+        <p class="text-[12px] font-bold mb-2 text-[var(--ink)]">角丸スケール</p>
+        <div class="flex flex-wrap gap-2">
+          ${Object.entries(RADIUS_MAP).map(([k,v])=>`<button class="chip ${state.radiusScale===k?'active':''}" data-section="colorType" data-group="radiusScale" data-value="${k}">${v.label}</button>`).join('')}
+        </div>
+      </div>
+      <div>
+        <p class="text-[12px] font-bold mb-2 text-[var(--ink)]">余白スケール</p>
+        <div class="flex flex-wrap gap-2">
+          ${Object.entries(SPACING_MAP).map(([k,v])=>`<button class="chip ${state.spacingScale===k?'active':''}" data-section="colorType" data-group="spacingScale" data-value="${k}">${v.label}</button>`).join('')}
+        </div>
+      </div>`;
+  } else if(sec.key === 'motion'){
+    inner = `
+      <div class="mb-5">
+        <p class="text-[12px] font-bold mb-2 text-[var(--ink)]">トランジション速度</p>
+        <div class="flex flex-wrap gap-2">
+          ${Object.entries(SPEED_MAP).map(([k,v])=>`<button class="chip ${state.motion.speed===k?'active':''}" data-section="motion" data-group="speed" data-value="${k}">${v.label}</button>`).join('')}
+        </div>
+      </div>
+      <div class="mb-5 flex items-center justify-between max-w-xs">
+        <div><p class="text-[12px] font-bold text-[var(--ink)]">Dynamic Type対応</p><p class="chip-desc mt-0">端末の文字サイズ設定に追従</p></div>
+        <div class="toggle ${state.motion.dynamicType?'on':''}" data-section="motion" data-group="dynamicType"></div>
+      </div>
+      <div class="mb-5">
+        <p class="text-[12px] font-bold mb-2 text-[var(--ink)]">ダークモード対応</p>
+        <div class="flex flex-wrap gap-2">
+          ${['auto','on','off'].map(k=>`<button class="chip ${state.motion.darkMode===k?'active':''}" data-section="motion" data-group="darkMode" data-value="${k}">${k==='auto'?'システムに合わせる':k==='on'?'常時対応':'非対応'}</button>`).join('')}
+        </div>
+      </div>
+      <div>
+        <p class="text-[12px] font-bold mb-2 text-[var(--ink)]">コントラスト基準</p>
+        <div class="flex flex-wrap gap-2">
+          ${['AA','AAA'].map(k=>`<button class="chip ${state.motion.contrast===k?'active':''}" data-section="motion" data-group="contrast" data-value="${k}">WCAG ${k}</button>`).join('')}
+        </div>
+      </div>`;
+  } else if(sec.key === 'components'){
+    inner = sec.groups.map(g=>`
+      <div class="mb-5 last:mb-0">
+        <p class="text-[12px] font-bold mb-2 text-[var(--ink)]">${g.label}</p>
+        <div class="flex flex-wrap gap-2">
+          ${g.options.map(o=>`<button class="chip ${state.components[g.gkey]===o.v?'active':''}" data-section="components" data-group="${g.gkey}" data-value="${o.v}">${o.l}</button>`).join('')}
+        </div>
+      </div>`).join('');
+  } else if(sec.key === 'ux'){
+    inner = sec.options.map(o=>`
+      <div class="flex items-center justify-between py-2.5 border-b border-[var(--line)] last:border-0">
+        <div class="pr-4"><p class="text-[12.5px] font-bold text-[var(--ink)]">${o.l}</p><p class="chip-desc mt-0.5">${o.d}</p></div>
+        <div class="toggle ${state.ux[o.v]?'on':''}" data-section="ux" data-group="${o.v}"></div>
+      </div>`).join('');
+  } else {
+    // single-select sections: designSystem, concept, layout
+    inner = `<div class="flex flex-wrap gap-2">${sec.options.map(o=>{
+      const active = state[sec.key]===o.v;
+      return `<button class="chip ${active?'active':''}" data-section="${sec.key}" data-value="${o.v}" title="${o.d||''}">${o.l}</button>`;
+    }).join('')}</div>
+    <p class="chip-desc" id="desc-${sec.key}">${(sec.options.find(o=>o.v===state[sec.key])||{}).d || ''}</p>`;
+  }
+
+  const note = sec.note ? `<p class="chip-desc mb-3">${sec.note}</p>` : '';
+  return `
+  <div class="section-card p-5 md:p-6" id="sec-${sec.key}">
+    <div class="flex items-baseline gap-2.5 mb-4">
+      <span class="section-num">${sec.num}</span>
+      <h2 class="text-[14px] font-bold text-[var(--ink)]">${sec.title}</h2>
+    </div>
+    ${note}
+    ${inner}
+  </div>`;
+}
+
+function renderBuilder(){
+  builder.innerHTML = SECTIONS.map(renderSection).join('');
+}
+
+/* dark mode toggle above phone */
+function renderDarkToggle(){
+  const wrap = document.getElementById('darkToggleWrap');
+  wrap.innerHTML = `
+    <button id="pvLight" class="chip !py-1.5 !px-2.5 ${!state.previewDark?'active':''}">Light</button>
+    <button id="pvDark" class="chip !py-1.5 !px-2.5 ${state.previewDark?'active':''}">Dark</button>`;
+  document.getElementById('pvLight').onclick = ()=>{state.previewDark=false; renderDarkToggle(); updatePreview();};
+  document.getElementById('pvDark').onclick = ()=>{state.previewDark=true; renderDarkToggle(); updatePreview();};
+}
+
+/* ===================== EVENTS ===================== */
+builder.addEventListener('click', (e)=>{
+  const chip = e.target.closest('.chip');
+  const toggle = e.target.closest('.toggle');
+  if(chip){
+    const {section, group, value} = chip.dataset;
+    if(group){
+      applyGroupValue(section, group, value);
+    } else {
+      state[section] = value;
+      if(section==='concept'){
+        const preset = CONCEPT_PRESET[value];
+        if(preset){ state.color = preset.color; state.font = preset.font; state.radiusScale = preset.radius; }
+      }
+      renderBuilder();
+    }
+    if(group) renderBuilder();
+    updatePreview();
+  }
+  if(toggle){
+    const {section, group} = toggle.dataset;
+    if(section==='ux'){ state.ux[group] = !state.ux[group]; }
+    if(section==='motion'){ state.motion[group] = !state.motion[group]; }
+    renderBuilder();
+    updatePreview();
+  }
+});
+
+function applyGroupValue(section, group, value){
+  if(section==='components') state.components[group] = value;
+  else if(section==='colorType'){
+    if(group==='font') state.font = value;
+    if(group==='radiusScale') state.radiusScale = value;
+    if(group==='spacingScale') state.spacingScale = value;
+  } else if(section==='motion'){
+    if(group==='speed') state.motion.speed = value;
+    if(group==='darkMode') state.motion.darkMode = value;
+    if(group==='contrast') state.motion.contrast = value;
+  }
+}
+
+/* color picker (delegated separately since input event, not click) */
+builder.addEventListener('input', (e)=>{
+  if(e.target.id === 'colorPicker'){
+    state.color = e.target.value;
+    document.getElementById('colorHex').textContent = state.color;
+    updatePreview();
+    updateTokenSheet();
+  }
+});
+
+/* ===================== PREVIEW ===================== */
+function hexToRgb(hex){
+  const m = hex.replace('#','');
+  const bigint = parseInt(m,16);
+  return [(bigint>>16)&255, (bigint>>8)&255, bigint&255];
+}
+function isDark(){
+  if(state.motion.darkMode === 'off') return false;
+  return state.previewDark;
+}
+
+function pvBodyContent(){
+  const btnCls = state.components.button;
+  const inputCls = state.components.input==='fill' ? '' : state.components.input;
+  const cardCls = state.components.card;
+  const card = `<div class="pv-card ${cardCls}">
+      <div style="width:60%;height:9px;border-radius:4px;background:currentColor;opacity:.15;margin-bottom:8px;"></div>
+      <div style="width:85%;height:7px;border-radius:4px;background:currentColor;opacity:.1;"></div>
+      <input class="pv-input ${inputCls}" placeholder="入力欄のサンプル" disabled>
+      <div class="pv-btn ${btnCls}">主要アクション</div>
+    </div>`;
+
+  if(state.layout === 'modal'){
+    return `<div class="pv-card ${cardCls}" style="opacity:.5"></div>
+      <div class="pv-modal-overlay center">
+        <div class="pv-modal-card">
+          <div style="width:50%;height:10px;border-radius:4px;background:currentColor;opacity:.2;margin-bottom:10px;"></div>
+          <div style="width:80%;height:7px;border-radius:4px;background:currentColor;opacity:.12;margin-bottom:4px;"></div>
+          <div style="width:65%;height:7px;border-radius:4px;background:currentColor;opacity:.12;"></div>
+          <div class="pv-btn ${btnCls}">確認する</div>
+        </div>
+      </div>`;
+  }
+  if(state.layout === 'sheet'){
+    return `${card}
+      <div class="pv-modal-overlay">
+        <div class="pv-sheet">
+          <div class="pv-sheet-handle"></div>
+          <div style="width:45%;height:9px;border-radius:4px;background:currentColor;opacity:.2;margin-bottom:10px;"></div>
+          <div class="pv-btn ${btnCls}">選択する</div>
+        </div>
+      </div>`;
+  }
+  if(state.layout === 'drawer'){
+    return `${card}
+      <div class="pv-drawer">
+        <div style="width:50%;height:9px;border-radius:4px;background:currentColor;opacity:.2;margin-bottom:16px;"></div>
+        ${[1,2,3].map(()=>`<div style="width:70%;height:8px;border-radius:4px;background:currentColor;opacity:.1;margin-bottom:14px;"></div>`).join('')}
+      </div>`;
+  }
+  if(state.layout === 'cards'){
+    return card + `<div class="pv-card ${cardCls}"><div style="width:70%;height:8px;border-radius:4px;background:currentColor;opacity:.12;"></div></div>`;
+  }
+  return card; // tabbar / default
+}
+
+function updatePreview(){
+  const dark = isDark();
+  const r = RADIUS_MAP[state.radiusScale];
+  const sp = SPACING_MAP[state.spacingScale];
+  const font = FONT_MAP[state.font];
+  const scr = document.getElementById('pvScreen');
+
+  scr.style.setProperty('--pv-bg', dark ? '#121214' : '#FFFFFF');
+  scr.style.setProperty('--pv-fg', dark ? '#F2F1EF' : '#111111');
+  scr.style.setProperty('--pv-surface', dark ? '#1E1E22' : '#F4F3F0');
+  scr.style.setProperty('--pv-line', dark ? '#333338' : '#E4E2DC');
+  scr.style.setProperty('--pv-accent', state.color);
+  scr.style.setProperty('--pv-font', font.css);
+  scr.style.setProperty('--r-btn', (state.components.button==='pill'?999:state.components.button==='square'?4:r.btn)+'px');
+  scr.style.setProperty('--r-card', r.card+'px');
+  scr.style.setProperty('--r-input', state.components.input==='underline'?'0px': r.input+'px');
+  scr.style.setProperty('--sp-unit', sp.unit+'px');
+  scr.style.setProperty('--dur', SPEED_MAP[state.motion.speed].ms+'ms');
+
+  const dtScale = state.motion.dynamicType ? 1.08 : 1;
+
+  scr.innerHTML = `
+    <div class="pv-statusbar" style="color:var(--pv-fg)">
+      <span>9:41</span><span>●●●</span>
+    </div>
+    ${state.layout==='drawer' ? `<div class="pv-fab-menu" style="color:var(--pv-fg)"><span></span><span></span><span></span></div>` : ''}
+    <div class="pv-header" style="color:var(--pv-fg); font-size:${19*dtScale}px;">プレビュー画面</div>
+    <div class="pv-body" style="color:var(--pv-fg); font-size:${13*dtScale}px;">
+      ${pvBodyContent()}
+    </div>
+    ${state.layout==='tabbar' ? `
+      <div class="pv-tabbar">
+        ${[1,2,3,4].map((n,i)=>`<div class="pv-tab ${i===0?'on':''}"></div>`).join('')}
+      </div>` : ''}
+  `;
+}
+
+function updateTokenSheet(){
+  const r = RADIUS_MAP[state.radiusScale];
+  const sp = SPACING_MAP[state.spacingScale];
+  const rows = [
+    ['COLOR.PRIMARY', state.color.toUpperCase()],
+    ['FONT', FONT_MAP[state.font].label],
+    ['RADIUS.BTN', r.btn+'px'],
+    ['RADIUS.CARD', r.card+'px'],
+    ['SPACING.UNIT', sp.unit+'px'],
+    ['MOTION.DUR', SPEED_MAP[state.motion.speed].ms+'ms'],
+    ['A11Y.CONTRAST', 'WCAG '+state.motion.contrast],
+  ];
+  document.getElementById('tokenSheet').innerHTML = rows.map(([k,v])=>
+    `<div class="flex justify-between"><span class="text-[#7d7a72]">${k}</span><span class="text-[#F6F5F2]">${v}</span></div>`
+  ).join('');
+}
+
+/* ===================== SPEC GENERATION ===================== */
+function label(sectionKey, val){
+  const sec = SECTIONS.find(s=>s.key===sectionKey);
+  const opt = sec && sec.options && sec.options.find(o=>o.v===val);
+  return opt ? opt.l : val;
+}
+
+function generateSpec(){
+  const r = RADIUS_MAP[state.radiusScale];
+  const sp = SPACING_MAP[state.spacingScale];
+  const ux = SECTIONS.find(s=>s.key==='ux').options.filter(o=>state.ux[o.v]).map(o=>`- ${o.l}`).join('\n') || '- (未選択)';
+
+  return `# デザイン仕様書
+作成日: ${new Date().toLocaleDateString('ja-JP')}
+
+## 01. デザインシステム
+${label('designSystem', state.designSystem)}
+
+## 02. デザインコンセプト
+${label('concept', state.concept)}
+
+## 03. 画面構成
+${label('layout', state.layout)}
+
+## 04. コンポーネント仕様
+- ボタン形状: ${({rounded:'角丸',pill:'ピル(完全丸)',square:'角ばり'})[state.components.button]}
+- 入力欄スタイル: ${({fill:'塗りつぶし',outline:'アウトライン',underline:'アンダーライン'})[state.components.input]}
+- カードスタイル: ${({flat:'フラット',elevated:'影(エレベーション)',outline:'アウトライン'})[state.components.card]}
+
+## 05. 配色・タイポグラフィ
+- プライマリカラー: ${state.color.toUpperCase()}
+- フォント: ${FONT_MAP[state.font].label}
+- 角丸スケール: ${r.label}(ボタン${r.btn}px / カード${r.card}px / 入力欄${r.input}px)
+- 余白スケール: ${sp.label}(基準単位 ${sp.unit}px)
+
+## 06. UX原則
+${ux}
+
+## 07. アニメーション・アクセシビリティ
+- トランジション速度: ${SPEED_MAP[state.motion.speed].label}
+- Dynamic Type対応: ${state.motion.dynamicType ? '対応する' : '対応しない'}
+- ダークモード対応: ${({auto:'システム設定に自動追従',on:'常時対応',off:'非対応'})[state.motion.darkMode]}
+- コントラスト基準: WCAG ${state.motion.contrast}
+
+---
+このファイルは DESIGN SPEC BUILDER で自動生成されました。
+`;
+}
+
+/* ===================== MODAL ===================== */
+const specModal = document.getElementById('specModal');
+document.getElementById('openSpecBtn').onclick = ()=>{
+  document.getElementById('specText').textContent = generateSpec();
+  specModal.classList.remove('hidden'); specModal.classList.add('flex');
+};
+document.getElementById('closeSpecBtn').onclick = ()=>{
+  specModal.classList.add('hidden'); specModal.classList.remove('flex');
+};
+specModal.addEventListener('click', (e)=>{ if(e.target===specModal){ specModal.classList.add('hidden'); specModal.classList.remove('flex'); } });
+
+document.getElementById('copySpecBtn').onclick = async ()=>{
+  await navigator.clipboard.writeText(document.getElementById('specText').textContent);
+  const btn = document.getElementById('copySpecBtn');
+  const orig = btn.textContent; btn.textContent = 'コピーしました';
+  setTimeout(()=>btn.textContent = orig, 1500);
+};
+document.getElementById('downloadSpecBtn').onclick = ()=>{
+  const blob = new Blob([document.getElementById('specText').textContent], {type:'text/markdown'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `design-spec-${Date.now()}.md`;
+  a.click();
+};
+
+/* ===================== INIT ===================== */
+renderBuilder();
+renderDarkToggle();
+updatePreview();
+updateTokenSheet();
+
+/* keep token sheet in sync on every builder click too */
+builder.addEventListener('click', updateTokenSheet);
+
+/* ===================== PWA ===================== */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
