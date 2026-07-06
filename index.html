@@ -48,6 +48,19 @@
 
   .section-card{background:var(--panel); border:1px solid var(--line); border-radius:4px;}
   .section-num{font-family:var(--mono); font-size:11px; color:#B0AB9C;}
+  .sec-header{cursor:pointer; user-select:none;}
+  .sec-chevron{transition:transform .2s ease; color:#B0AB9C; font-size:11px;}
+  .sec-header.open .sec-chevron{transform:rotate(180deg);}
+  .sec-body{overflow:hidden; max-height:0; transition:max-height .25s ease;}
+  .sec-body.open{max-height:2000px;}
+  .sec-summary{font-family:var(--mono); font-size:10.5px; color:#9A968C;}
+
+  #previewFab{
+    position:fixed; right:16px; bottom:16px; z-index:40;
+    background:#7FE0C1; color:#1C1B1F; border-radius:999px; font-family:var(--mono);
+    font-weight:700; font-size:12.5px; padding:13px 18px; box-shadow:0 10px 24px -6px rgba(0,0,0,.4);
+  }
+  #mobilePreviewModal .phone{ width:240px; height:490px; }
 
   /* --- phone preview --- */
   .phone{
@@ -132,8 +145,8 @@
   <!-- LEFT: BUILDER -->
   <div class="space-y-4" id="builder"></div>
 
-  <!-- RIGHT: PREVIEW (sticky) -->
-  <div class="lg:sticky lg:top-24 flex flex-col items-center gap-5">
+  <!-- RIGHT: PREVIEW (sticky, desktop only) -->
+  <div class="hidden lg:flex lg:sticky lg:top-24 flex-col items-center gap-5">
     <div class="flex items-center gap-2 self-stretch justify-between">
       <p class="eyebrow text-[10px] text-[#7FE0C1]">LIVE PREVIEW</p>
       <div class="flex gap-1.5" id="darkToggleWrap"></div>
@@ -150,6 +163,28 @@
 </main>
 
 <footer class="text-center text-[10px] eyebrow text-[#6b6870] py-8">7 STEPS → 1 SPEC · WORKS OFFLINE AFTER FIRST LOAD</footer>
+
+<!-- MOBILE PREVIEW FAB -->
+<button id="previewFab" class="lg:hidden">👁 プレビュー</button>
+
+<!-- MOBILE PREVIEW MODAL -->
+<div id="mobilePreviewModal" class="fixed inset-0 bg-black/70 z-50 hidden lg:hidden items-end justify-center">
+  <div class="bg-[#1C1B1F] w-full rounded-t-2xl max-h-[88vh] overflow-y-auto studio-scroll pt-3 pb-8 px-5">
+    <div class="w-9 h-1 bg-[#3a383f] rounded-full mx-auto mb-4"></div>
+    <div class="flex items-center justify-between mb-4">
+      <p class="eyebrow text-[10px] text-[#7FE0C1]">LIVE PREVIEW</p>
+      <div class="flex gap-1.5" id="darkToggleWrapMobile"></div>
+    </div>
+    <div class="flex justify-center mb-5">
+      <div class="phone"><div class="phone-screen" id="pvScreenMobile"></div></div>
+    </div>
+    <div class="section-card p-4 bg-[#22212A] border-[#3a383f] text-[#F6F5F2]">
+      <p class="eyebrow text-[10px] text-[#7FE0C1] mb-3">TOKEN SHEET</p>
+      <div id="tokenSheetMobile" class="space-y-2 text-[11px] eyebrow leading-relaxed text-[#C9C6BE]"></div>
+    </div>
+    <button id="closeMobilePreviewBtn" class="chip w-full !py-3 mt-5 text-center">閉じる</button>
+  </div>
+</div>
 
 <!-- SPEC MODAL -->
 <div id="specModal" class="fixed inset-0 bg-black/60 z-50 hidden items-center justify-center p-4">
@@ -278,6 +313,7 @@ const state = {
   ux:{oneHand:true, threeTap:true, gazeGuide:false, instantFeedback:true},
   motion:{speed:'standard', dynamicType:true, darkMode:'auto', contrast:'AA'},
   previewDark:false,
+  openSections: new Set(['designSystem']),
 };
 
 /* ===================== RENDER BUILDER ===================== */
@@ -365,33 +401,66 @@ function renderSection(sec){
   }
 
   const note = sec.note ? `<p class="chip-desc mb-3">${sec.note}</p>` : '';
+  const isOpen = state.openSections.has(sec.key);
   return `
   <div class="section-card p-5 md:p-6" id="sec-${sec.key}">
-    <div class="flex items-baseline gap-2.5 mb-4">
-      <span class="section-num">${sec.num}</span>
-      <h2 class="text-[14px] font-bold text-[var(--ink)]">${sec.title}</h2>
+    <div class="flex items-center justify-between gap-2.5 sec-header ${isOpen?'open':''}" data-toggle="${sec.key}">
+      <div class="flex items-baseline gap-2.5">
+        <span class="section-num">${sec.num}</span>
+        <h2 class="text-[14px] font-bold text-[var(--ink)]">${sec.title}</h2>
+      </div>
+      <div class="flex items-center gap-2.5">
+        <span class="sec-summary hidden md:inline">${sectionSummary(sec)}</span>
+        <span class="sec-chevron">▾</span>
+      </div>
     </div>
-    ${note}
-    ${inner}
+    <p class="sec-summary md:hidden mt-1">${sectionSummary(sec)}</p>
+    <div class="sec-body ${isOpen?'open':''}" id="body-${sec.key}">
+      <div class="pt-4">${note}${inner}</div>
+    </div>
   </div>`;
+}
+
+function sectionSummary(sec){
+  if(sec.key==='designSystem') return label('designSystem', state.designSystem);
+  if(sec.key==='concept') return label('concept', state.concept);
+  if(sec.key==='layout') return label('layout', state.layout);
+  if(sec.key==='components') return `${state.components.button}/${state.components.input}/${state.components.card}`;
+  if(sec.key==='colorType') return `${state.color.toUpperCase()} · ${FONT_MAP[state.font].label}`;
+  if(sec.key==='ux') return `${Object.values(state.ux).filter(Boolean).length}/${Object.keys(state.ux).length} 選択中`;
+  if(sec.key==='motion') return `${SPEED_MAP[state.motion.speed].label}`;
+  return '';
 }
 
 function renderBuilder(){
   builder.innerHTML = SECTIONS.map(renderSection).join('');
 }
 
-/* dark mode toggle above phone */
+/* dark mode toggle above phone (desktop + mobile) */
 function renderDarkToggle(){
-  const wrap = document.getElementById('darkToggleWrap');
-  wrap.innerHTML = `
-    <button id="pvLight" class="chip !py-1.5 !px-2.5 ${!state.previewDark?'active':''}">Light</button>
-    <button id="pvDark" class="chip !py-1.5 !px-2.5 ${state.previewDark?'active':''}">Dark</button>`;
-  document.getElementById('pvLight').onclick = ()=>{state.previewDark=false; renderDarkToggle(); updatePreview();};
-  document.getElementById('pvDark').onclick = ()=>{state.previewDark=true; renderDarkToggle(); updatePreview();};
+  const html = (suffix)=>`
+    <button id="pvLight${suffix}" class="chip !py-1.5 !px-2.5 ${!state.previewDark?'active':''}">Light</button>
+    <button id="pvDark${suffix}" class="chip !py-1.5 !px-2.5 ${state.previewDark?'active':''}">Dark</button>`;
+  ['darkToggleWrap','darkToggleWrapMobile'].forEach((id, i)=>{
+    const wrap = document.getElementById(id);
+    if(!wrap) return;
+    const suffix = i===0 ? '' : 'M';
+    wrap.innerHTML = html(suffix);
+    document.getElementById(`pvLight${suffix}`).onclick = ()=>{state.previewDark=false; renderDarkToggle(); updatePreview();};
+    document.getElementById(`pvDark${suffix}`).onclick = ()=>{state.previewDark=true; renderDarkToggle(); updatePreview();};
+  });
 }
 
 /* ===================== EVENTS ===================== */
 builder.addEventListener('click', (e)=>{
+  const header = e.target.closest('.sec-header');
+  if(header){
+    const key = header.dataset.toggle;
+    if(state.openSections.has(key)) state.openSections.delete(key);
+    else state.openSections.add(key);
+    renderBuilder();
+    return;
+  }
   const chip = e.target.closest('.chip');
   const toggle = e.target.closest('.toggle');
   if(chip){
@@ -498,11 +567,17 @@ function pvBodyContent(){
 }
 
 function updatePreview(){
+  ['pvScreen','pvScreenMobile'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) applyPreviewTo(el);
+  });
+}
+
+function applyPreviewTo(scr){
   const dark = isDark();
   const r = RADIUS_MAP[state.radiusScale];
   const sp = SPACING_MAP[state.spacingScale];
   const font = FONT_MAP[state.font];
-  const scr = document.getElementById('pvScreen');
 
   scr.style.setProperty('--pv-bg', dark ? '#121214' : '#FFFFFF');
   scr.style.setProperty('--pv-fg', dark ? '#F2F1EF' : '#111111');
@@ -546,9 +621,13 @@ function updateTokenSheet(){
     ['MOTION.DUR', SPEED_MAP[state.motion.speed].ms+'ms'],
     ['A11Y.CONTRAST', 'WCAG '+state.motion.contrast],
   ];
-  document.getElementById('tokenSheet').innerHTML = rows.map(([k,v])=>
+  const rowsHtml = rows.map(([k,v])=>
     `<div class="flex justify-between"><span class="text-[#7d7a72]">${k}</span><span class="text-[#F6F5F2]">${v}</span></div>`
   ).join('');
+  ['tokenSheet','tokenSheetMobile'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.innerHTML = rowsHtml;
+  });
 }
 
 /* ===================== SPEC GENERATION ===================== */
@@ -624,6 +703,24 @@ document.getElementById('downloadSpecBtn').onclick = ()=>{
   a.download = `design-spec-${Date.now()}.md`;
   a.click();
 };
+
+/* ===================== MOBILE PREVIEW MODAL ===================== */
+const mobilePreviewModal = document.getElementById('mobilePreviewModal');
+document.getElementById('previewFab').onclick = ()=>{
+  mobilePreviewModal.classList.remove('hidden');
+  mobilePreviewModal.classList.add('flex');
+  updatePreview(); updateTokenSheet();
+};
+document.getElementById('closeMobilePreviewBtn').onclick = ()=>{
+  mobilePreviewModal.classList.add('hidden');
+  mobilePreviewModal.classList.remove('flex');
+};
+mobilePreviewModal.addEventListener('click', (e)=>{
+  if(e.target === mobilePreviewModal){
+    mobilePreviewModal.classList.add('hidden');
+    mobilePreviewModal.classList.remove('flex');
+  }
+});
 
 /* ===================== INIT ===================== */
 renderBuilder();
